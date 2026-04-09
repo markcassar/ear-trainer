@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ear Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/tone@14/build/Tone.js"></script>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #080808;
+  --surface: #111111;
+  --surface2: #191919;
+  --border: #262626;
+  --border-lit: #3a3a3a;
+  --accent: #e8851a;
+  --accent-lo: #e8851a22;
+  --accent-glow: #e8851a66;
+  --text: #ede8d8;
+  --text-dim: #5a5650;
+  --text-mid: #888;
+  --danger: #e84d1a;
+  --mono: 'Space Mono', 'Courier New', monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  min-height: 100vh;
+  padding: 2.5rem 1rem 4rem;
+  font-size: 14px;
+}
+
+/* Subtle scanline overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 100;
+}
+
+.app {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+/* ── HEADER ── */
+header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(3rem, 10vw, 5rem);
+  letter-spacing: 0.18em;
+  color: var(--accent);
+  line-height: 1;
+  text-shadow:
+    0 0 20px var(--accent-glow),
+    0 0 60px var(--accent-lo);
+}
+
+.tagline {
+  font-size: 0.6rem;
+  letter-spacing: 0.4em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-top: 0.6rem;
+}
+
+.tagline span {
+  color: var(--text-mid);
+  margin: 0 0.5em;
+}
+
+/* ── PANELS ── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1.5rem;
+  margin-bottom: 1px;
+}
+.panel:first-of-type { border-radius: 3px 3px 0 0; }
+.panel:last-of-type  { border-radius: 0 0 3px 3px; margin-bottom: 0; }
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.panel-label {
+  font-size: 0.55rem;
+  letter-spacing: 0.35em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.panel-header::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── CONTROLS ── */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.ctrl {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ctrl label {
+  font-size: 0.55rem;
+  letter-spacing: 0.25em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.select-wrap {
+  position: relative;
+}
+.select-wrap::after {
+  content: '▾';
+  position: absolute;
+  right: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--accent);
+  pointer-events: none;
+  font-size: 0.75rem;
+}
+
+select {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  border-radius: 2px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color 0.15s;
+}
+select:hover, select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+select option { background: #1a1a1a; }
+
+/* Range slider */
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+input[type=range] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  background: var(--border);
+  border-radius: 0;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+input[type=range]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.slider-val {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.6rem;
+  color: var(--accent);
+  min-width: 2ch;
+  text-align: right;
+  line-height: 1;
+}
+
+/* ── BUTTONS ── */
+.btn-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 0.5rem;
+  margin: 1.25rem 0;
+}
+
+button {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 0.85rem 0.75rem;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.12s;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-dim);
+}
+button:hover:not(:disabled) {
+  border-color: var(--border-lit);
+  color: var(--text);
+}
+button:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+  font-weight: 700;
+  box-shadow: 0 0 16px var(--accent-lo);
+}
+button.primary:hover:not(:disabled) {
+  background: #f0962a;
+  box-shadow: 0 0 24px var(--accent-glow);
+}
+button.primary:active:not(:disabled) { background: #c87010; }
+
+/* ── NOTE INDICATORS ── */
+.indicators {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem 0 1rem;
+  min-height: 56px;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  transition: all 0.08s;
+  flex-shrink: 0;
+}
+.dot.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+  transform: scale(1.5);
+}
+.dot.done {
+  background: var(--border-lit);
+  border-color: var(--border-lit);
+}
+
+/* ── ERROR ── */
+.error {
+  font-size: 0.65rem;
+  color: var(--danger);
+  text-align: center;
+  letter-spacing: 0.1em;
+  padding: 0.4rem;
+  display: none;
+}
+
+/* ── TAB DISPLAY ── */
+.tab-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.tab-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+.tab-label-txt {
+  font-size: 0.55rem;
+  letter-spacing: 0.3em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.tab-key-name {
+  font-size: 0.7rem;
+  color: var(--text-mid);
+  letter-spacing: 0.1em;
+}
+
+.tab-body {
+  position: relative;
+  padding: 1.5rem 1.5rem 1rem;
+  min-height: 170px;
+}
+.tab-text {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  line-height: 2;
+  color: var(--accent);
+  white-space: pre;
+  overflow-x: auto;
+  transition: filter 0.3s, opacity 0.3s;
+}
+.tab-text.blurred {
+  filter: blur(7px);
+  opacity: 0.4;
+  user-select: none;
+}
+.tab-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.tab-overlay-text {
+  font-size: 0.6rem;
+  letter-spacing: 0.25em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.tab-overlay-sub {
+  font-size: 0.55rem;
+  color: var(--text-dim);
+  opacity: 0.5;
+  letter-spacing: 0.15em;
+}
+
+.tab-note-names {
+  padding: 0.75rem 1.5rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--text-mid);
+  letter-spacing: 0.08em;
+  display: none;
+}
+
+/* ── STATUS ── */
+.status {
+  text-align: center;
+  font-size: 0.55rem;
+  letter-spacing: 0.3em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  padding: 1.25rem 0 0;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.status.active { animation: blink 0.8s infinite; color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="title">EAR TRAINER</div>
+    <div class="tagline">Guitar<span>·</span>120 BPM<span>·</span>Half Notes</div>
+  </header>
+
+  <!-- CONFIG PANEL -->
+  <div class="panel">
+    <div class="panel-header"><span class="panel-label">Configuration</span></div>
+    <div class="ctrl" style="margin-bottom:1rem">
+      <label>Instrument</label>
+      <div class="select-wrap">
+        <select id="instrument">
+          <option value="guitar">Guitar (6-string)</option>
+          <option value="bass">Bass (4-string)</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="ctrl">
+        <label>Key</label>
+        <div class="select-wrap">
+          <select id="keySelect">
+            <option value="random">— Random —</option>
+            <option value="0">C</option>
+            <option value="1">C# / Db</option>
+            <option value="2">D</option>
+            <option value="3">D# / Eb</option>
+            <option value="4">E</option>
+            <option value="5">F</option>
+            <option value="6">F# / Gb</option>
+            <option value="7">G</option>
+            <option value="8">G# / Ab</option>
+            <option value="9">A</option>
+            <option value="10">A# / Bb</option>
+            <option value="11">B</option>
+          </select>
+        </div>
+      </div>
+      <div class="ctrl">
+        <label>Scale</label>
+        <div class="select-wrap">
+          <select id="scaleSelect">
+            <option value="major">Major</option>
+            <option value="minor">Natural Minor</option>
+            <option value="pent_major">Pentatonic Major</option>
+            <option value="pent_minor">Pentatonic Minor</option>
+            <option value="blues">Blues</option>
+            <option value="chromatic">Chromatic</option>
+          </select>
+        </div>
+      </div>
+      <div class="ctrl">
+        <label>Lowest Note</label>
+        <div class="select-wrap">
+          <select id="lowestNote"></select>
+        </div>
+      </div>
+      <div class="ctrl">
+        <label>Highest Note</label>
+        <div class="select-wrap">
+          <select id="highestNote"></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="ctrl" style="margin-top:1rem">
+      <label>Guitar Sound</label>
+      <div class="select-wrap">
+        <select id="guitarType">
+          <option value="acoustic">Acoustic Steel</option>
+          <option value="clean">Electric Clean</option>
+          <option value="overdriven">Electric Overdriven</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="ctrl" style="margin-top:1.25rem">
+      <label>Number of Notes</label>
+      <div class="slider-row">
+        <input type="range" id="noteCount" min="2" max="12" value="4" step="1">
+        <div class="slider-val" id="noteCountVal">4</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="btn-row">
+    <button class="primary" id="btnNew">▶ New Sequence</button>
+    <button id="btnReplay" disabled>↺ Replay</button>
+    <button id="btnPrev" disabled>← Previous</button>
+    <button id="btnReveal" disabled>◈ Reveal</button>
+  </div>
+
+  <div class="error" id="errorMsg"></div>
+  <div class="indicators" id="indicators"></div>
+
+  <!-- TAB DISPLAY -->
+  <div class="tab-wrap">
+    <div class="tab-top">
+      <span class="tab-label-txt">Guitar Tab</span>
+      <span class="tab-key-name" id="tabKeyName">—</span>
+    </div>
+    <div class="tab-body">
+      <div class="tab-text blurred" id="tabText">e |---|---|---|---|
+B |---|---|---|---|
+G |---|---|---|---|
+D |---|---|---|---|
+A |---|---|---|---|
+E |---|---|---|---|</div>
+      <div class="tab-overlay" id="tabOverlay">
+        <span class="tab-overlay-text">Awaiting Sequence</span>
+        <span class="tab-overlay-sub">Play something first</span>
+      </div>
+    </div>
+    <div class="tab-note-names" id="noteNames"></div>
+  </div>
+
+  <div class="status" id="status">Configure and press New Sequence to begin</div>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════
+//  MUSIC THEORY
+// ════════════════════════════════════════════
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+const SCALES = {
+  major:      [0,2,4,5,7,9,11],
+  minor:      [0,2,3,5,7,8,10],
+  pent_major: [0,2,4,7,9],
+  pent_minor: [0,3,5,7,10],
+  blues:      [0,3,5,6,7,10],
+  chromatic:  [0,1,2,3,4,5,6,7,8,9,10,11]
+};
+
+const SCALE_LABELS = {
+  major: 'Major', minor: 'Natural Minor',
+  pent_major: 'Pentatonic Major', pent_minor: 'Pentatonic Minor',
+  blues: 'Blues', chromatic: 'Chromatic'
+};
+
+// Guitar standard tuning E2-e4, 24 frets → E2(40) to E6(88)
+const GUITAR_STRING_MIDI  = [40, 45, 50, 55, 59, 64]; // E2 A2 D3 G3 B3 e4
+const GUITAR_STRING_NAMES = ['E','A','D','G','B','e'];
+const GUITAR_LOW  = 40; // E2
+const GUITAR_HIGH = 88; // E6 (high e, 24th fret)
+const GUITAR_DEFAULT_LO = 40; // E2
+const GUITAR_DEFAULT_HI = 76; // E5
+
+// Bass 4-string standard tuning, 24 frets → E1(28) to G4(67)
+const BASS_STRING_MIDI  = [28, 33, 38, 43]; // E1 A1 D2 G2
+const BASS_STRING_NAMES = ['E','A','D','G'];
+const BASS_LOW  = 28; // E1
+const BASS_HIGH = 67; // G4 (G string, 24th fret)
+const BASS_DEFAULT_LO = 28; // E1
+const BASS_DEFAULT_HI = 55; // G3
+
+function activeInstrument() {
+  return document.getElementById('instrument').value;
+}
+
+function instrumentConfig() {
+  return activeInstrument() === 'bass'
+    ? { stringMidi: BASS_STRING_MIDI, stringNames: BASS_STRING_NAMES, lo: BASS_LOW, hi: BASS_HIGH }
+    : { stringMidi: GUITAR_STRING_MIDI, stringNames: GUITAR_STRING_NAMES, lo: GUITAR_LOW, hi: GUITAR_HIGH };
+}
+
+function midiLabel(midi) {
+  return NOTE_NAMES[midi % 12] + (Math.floor(midi / 12) - 1);
+}
+
+function midiToTone(midi) {
+  const name = NOTE_NAMES[midi % 12];
+  const oct  = Math.floor(midi / 12) - 1;
+  return name + oct;
+}
+
+function validNotes(keyRoot, scaleType, lo, hi) {
+  const intervals = SCALES[scaleType];
+  const out = [];
+  for (let m = lo; m <= hi; m++) {
+    const sem = ((m - keyRoot) % 12 + 12) % 12;
+    if (intervals.includes(sem)) out.push(m);
+  }
+  return out;
+}
+
+// Lowest-fret tab resolver, instrument-aware
+function midiToTab(midi) {
+  const { stringMidi } = instrumentConfig();
+  let best = null;
+  for (let s = 0; s < stringMidi.length; s++) {
+    const fret = midi - stringMidi[s];
+    if (fret >= 0 && fret <= 24) {
+      if (!best || fret < best.fret) best = { s, fret };
+    }
+  }
+  return best;
+}
+
+function buildTab(midiArr) {
+  const { stringMidi, stringNames } = instrumentConfig();
+  const positions = midiArr.map(midiToTab);
+  const n = midiArr.length;
+  const lines = [];
+
+  for (let si = stringMidi.length - 1; si >= 0; si--) {
+    let line = stringNames[si] + ' |';
+    for (let i = 0; i < n; i++) {
+      const p = positions[i];
+      if (p && p.s === si) {
+        line += p.fret < 10 ? `-${p.fret}-` : `${p.fret}-`;
+      } else {
+        line += '---';
+      }
+    }
+    line += '|';
+    lines.push(line);
+  }
+  return lines.join('\n');
+}
+
+function blankTab() {
+  const { stringNames } = instrumentConfig();
+  return [...stringNames].reverse().map(n => `${n} |---|---|---|---|`).join('\n');
+}
+
+
+// ════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════
+let currentNotes  = [];
+let previousNotes = [];
+let prevKey       = null;
+let prevScale     = null;
+let isPlaying     = false;
+let hasSequence   = false;
+let hasPrevious   = false;
+let isRevealed    = false;
+let usedKey       = null;
+let usedScale     = null;
+let synth         = null;
+let timeouts      = [];
+
+
+// ════════════════════════════════════════════
+//  DOM INIT
+// ════════════════════════════════════════════
+const loSel     = document.getElementById('lowestNote');
+const hiSel     = document.getElementById('highestNote');
+const countSldr = document.getElementById('noteCount');
+const countVal  = document.getElementById('noteCountVal');
+const btnNew    = document.getElementById('btnNew');
+const btnReplay = document.getElementById('btnReplay');
+const btnReveal = document.getElementById('btnReveal');
+const indicators= document.getElementById('indicators');
+const errorMsg  = document.getElementById('errorMsg');
+const tabText   = document.getElementById('tabText');
+const tabOverlay= document.getElementById('tabOverlay');
+const tabKeyName= document.getElementById('tabKeyName');
+const noteNames = document.getElementById('noteNames');
+const statusEl  = document.getElementById('status');
+
+// Populate note dropdowns for the current instrument
+function populateNotes() {
+  const inst   = activeInstrument();
+  const isGtr  = inst === 'guitar';
+  const lo     = isGtr ? GUITAR_LOW     : BASS_LOW;
+  const hi     = isGtr ? GUITAR_HIGH    : BASS_HIGH;
+  const defLo  = isGtr ? GUITAR_DEFAULT_LO : BASS_DEFAULT_LO;
+  const defHi  = isGtr ? GUITAR_DEFAULT_HI : BASS_DEFAULT_HI;
+
+  loSel.innerHTML = '';
+  hiSel.innerHTML = '';
+  for (let m = lo; m <= hi; m++) {
+    const lbl = midiLabel(m);
+    const opt = `<option value="${m}">${lbl}</option>`;
+    loSel.innerHTML += opt;
+    hiSel.innerHTML += opt;
+  }
+  loSel.value = defLo;
+  hiSel.value = defHi;
+}
+
+// Repopulate the sound dropdown based on instrument
+function populateSounds() {
+  const soundSel = document.getElementById('guitarType');
+  const sounds   = activeInstrument() === 'bass' ? BASS_SOUNDS : GUITAR_SOUNDS;
+  soundSel.innerHTML = '';
+  sounds.forEach(key => {
+    const opt = document.createElement('option');
+    opt.value       = key;
+    opt.textContent = SOUND_CONFIGS[key].label;
+    soundSel.appendChild(opt);
+  });
+}
+
+// Handle instrument switch
+document.getElementById('instrument').addEventListener('change', () => {
+  populateSounds();
+  populateNotes();
+  // Preload the new instrument's default sound
+  loadSampler(activeType());
+});
+
+populateNotes();
+
+countSldr.addEventListener('input', () => {
+  countVal.textContent = countSldr.value;
+});
+
+
+// ════════════════════════════════════════════
+//  AUDIO
+// ════════════════════════════════════════════
+function clearTimeouts() {
+  timeouts.forEach(clearTimeout);
+  timeouts = [];
+}
+
+const SAMPLE_BASE = 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/';
+
+const SOUND_CONFIGS = {
+  // Guitar
+  acoustic:   { dir: 'acoustic_guitar_steel-mp3', label: 'Acoustic Steel',      release: 1.5,
+                keys: ['E2','A2','D3','G3','B3','E4','G4','B4','D5'] },
+  clean:      { dir: 'electric_guitar_clean-mp3', label: 'Electric Clean',      release: 1.5,
+                keys: ['E2','A2','D3','G3','B3','E4','G4','B4','D5'] },
+  overdriven: { dir: 'overdriven_guitar-mp3',      label: 'Electric Overdriven', release: 0.8,
+                keys: ['E2','A2','D3','G3','B3','E4','G4','B4','D5'] },
+  // Bass
+  bass_finger:   { dir: 'electric_bass_finger-mp3', label: 'Finger Style', release: 2.0,
+                   keys: ['E1','A1','D2','G2','B2','E3','G3','C4'] },
+  bass_pick:     { dir: 'electric_bass_pick-mp3',   label: 'Pick Style',   release: 1.2,
+                   keys: ['E1','A1','D2','G2','B2','E3','G3','C4'] },
+};
+
+const GUITAR_SOUNDS = ['acoustic','clean','overdriven'];
+const BASS_SOUNDS   = ['bass_finger','bass_pick'];
+
+const samplers     = {};
+const samplerState = {};
+
+function buildSamplerUrls(cfg) {
+  const urls = {};
+  cfg.keys.forEach(n => {
+    urls[n] = SAMPLE_BASE + cfg.dir + '/' + n.replace('#','s') + '.mp3';
+  });
+  return urls;
+}
+
+function loadSampler(type) {
+  if (samplerState[type] === 'ready' || samplerState[type] === 'loading') return;
+  samplerState[type] = 'loading';
+  const cfg = SOUND_CONFIGS[type];
+
+  samplers[type] = new Tone.Sampler({
+    urls: buildSamplerUrls(cfg),
+    release: cfg.release,
+    onload: () => {
+      samplerState[type] = 'ready';
+      if (type === activeType()) { setStatus('Ready', false); updateUI(); }
+    },
+    onerror: () => {
+      samplers[type] = new Tone.Synth({
+        oscillator: { type: 'triangle' },
+        envelope: { attack: 0.005, decay: 0.5, sustain: 0.05, release: 0.8 }
+      }).toDestination();
+      samplerState[type] = 'ready';
+    }
+  }).toDestination();
+}
+
+function activeType() {
+  return document.getElementById('guitarType').value;
+}
+
+function currentSampler() {
+  return samplers[activeType()];
+}
+
+async function ensureReady() {
+  const type = activeType();
+  loadSampler(type);
+  if (samplerState[type] === 'ready') return;
+  setStatus(`Loading ${SOUND_CONFIGS[type].label} samples…`, true);
+  return new Promise(resolve => {
+    const check = setInterval(() => {
+      if (samplerState[type] === 'ready') { clearInterval(check); resolve(); }
+    }, 100);
+  });
+}
+
+async function playSeries(notes) {
+  isPlaying = true;
+  updateUI();
+  clearTimeouts();
+
+  await ensureReady();
+
+  const s = currentSampler();
+  const INTERVAL_MS = 1000;
+
+  notes.forEach((_, i) => setDot(i, 'idle'));
+
+  notes.forEach((midi, i) => {
+    timeouts.push(setTimeout(() => {
+      setDot(i, 'active');
+      try { s.triggerAttackRelease(midiToTone(midi), '2n'); }
+      catch(e) { console.warn('note error', midiToTone(midi), e); }
+    }, i * INTERVAL_MS));
+
+    timeouts.push(setTimeout(() => setDot(i, 'done'), i * INTERVAL_MS + 300));
+  });
+
+  timeouts.push(setTimeout(() => {
+    isPlaying = false;
+    setStatus('Listen again or reveal the tab when ready', false);
+    updateUI();
+  }, notes.length * INTERVAL_MS + 400));
+}
+
+
+// ════════════════════════════════════════════
+//  INDICATORS
+// ════════════════════════════════════════════
+function buildDots(n) {
+  indicators.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.id = `dot-${i}`;
+    indicators.appendChild(d);
+  }
+}
+
+function setDot(i, state) {
+  const d = document.getElementById(`dot-${i}`);
+  if (!d) return;
+  d.className = 'dot' + (state === 'active' ? ' active' : state === 'done' ? ' done' : '');
+}
+
+
+// ════════════════════════════════════════════
+//  SEQUENCE
+// ════════════════════════════════════════════
+function generate() {
+  const keyRaw   = document.getElementById('keySelect').value;
+  const scaleKey = document.getElementById('scaleSelect').value;
+  const lo       = parseInt(loSel.value);
+  const hi       = parseInt(hiSel.value);
+  const n        = parseInt(countSldr.value);
+
+  if (lo >= hi) { showError('Lowest note must be below highest note.'); return null; }
+
+  const root  = keyRaw === 'random' ? Math.floor(Math.random() * 12) : parseInt(keyRaw);
+  const pool  = validNotes(root, scaleKey, lo, hi);
+
+  if (pool.length === 0) {
+    showError('No notes in this key + range. Widen the range or try Chromatic.');
+    return null;
+  }
+
+  clearError();
+  usedKey   = root;
+  usedScale = scaleKey;
+
+  const notes = Array.from({ length: n }, () => pool[Math.floor(Math.random() * pool.length)]);
+  return notes;
+}
+
+
+// ════════════════════════════════════════════
+//  REVEAL
+// ════════════════════════════════════════════
+function reveal() {
+  if (!hasSequence || isRevealed) return;
+  isRevealed = true;
+
+  const tab = buildTab(currentNotes);
+  tabText.textContent = tab;
+  tabText.classList.remove('blurred');
+  tabOverlay.style.display = 'none';
+
+  const keyLabel   = NOTE_NAMES[usedKey];
+  const scaleLabel = SCALE_LABELS[usedScale];
+  tabKeyName.textContent = `${keyLabel} ${scaleLabel}`;
+
+  noteNames.textContent = currentNotes.map(midiLabel).join('  ·  ');
+  noteNames.style.display = 'block';
+
+  updateUI();
+}
+
+
+// ════════════════════════════════════════════
+//  UI HELPERS
+// ════════════════════════════════════════════
+function updateUI() {
+  btnNew.disabled    = isPlaying;
+  btnReplay.disabled = isPlaying || !hasSequence;
+  btnPrev.disabled   = isPlaying || !hasPrevious;
+  btnReveal.disabled = isPlaying || !hasSequence || isRevealed;
+
+  if (isPlaying) {
+    btnNew.textContent = '▶ Playing…';
+    setStatus('♪  Listen carefully', true);
+  } else {
+    btnNew.textContent = '▶ New Sequence';
+  }
+}
+
+function setStatus(msg, active = false) {
+  statusEl.textContent = msg;
+  statusEl.className = 'status' + (active ? ' active' : '');
+}
+
+function showError(msg) {
+  errorMsg.textContent = msg;
+  errorMsg.style.display = 'block';
+}
+function clearError() {
+  errorMsg.style.display = 'none';
+}
+
+function resetTabPanel() {
+  tabText.textContent = blankTab();
+  tabText.classList.add('blurred');
+  tabOverlay.style.display  = 'flex';
+  tabOverlay.innerHTML =
+    `<span class="tab-overlay-text">Tab Hidden</span>
+     <span class="tab-overlay-sub">Press "Reveal" when ready</span>`;
+  tabKeyName.textContent = '—';
+  noteNames.style.display = 'none';
+}
+
+
+// ════════════════════════════════════════════
+//  BUTTON HANDLERS
+// ════════════════════════════════════════════
+btnNew.addEventListener('click', async () => {
+  Tone.start(); // must be synchronous, top of gesture handler, for Safari
+  const notes = generate();
+  if (!notes) return;
+
+  // Save current as previous before overwriting
+  if (hasSequence) {
+    previousNotes = [...currentNotes];
+    prevKey       = usedKey;
+    prevScale     = usedScale;
+    hasPrevious   = true;
+  }
+
+  currentNotes = notes;
+  hasSequence  = true;
+  isRevealed   = false;
+
+  resetTabPanel();
+  buildDots(notes.length);
+  await playSeries(notes);
+});
+
+const btnPrev = document.getElementById('btnPrev');
+
+btnPrev.addEventListener('click', async () => {
+  Tone.start();
+  if (!hasPrevious || isPlaying) return;
+
+  const tempNotes = [...currentNotes];
+  const tempKey   = usedKey;
+  const tempScale = usedScale;
+
+  currentNotes = [...previousNotes];
+  usedKey      = prevKey;
+  usedScale    = prevScale;
+
+  previousNotes = tempNotes;
+  prevKey       = tempKey;
+  prevScale     = tempScale;
+
+  isRevealed = false;
+  resetTabPanel();
+  buildDots(currentNotes.length);
+  await playSeries(currentNotes);
+});
+
+btnReplay.addEventListener('click', async () => {
+  Tone.start();
+  if (!hasSequence || isPlaying) return;
+  buildDots(currentNotes.length);
+  await playSeries(currentNotes);
+});
+
+btnReveal.addEventListener('click', reveal);
+
+
+// ════════════════════════════════════════════
+//  STARTUP
+// ════════════════════════════════════════════
+buildDots(4);
+populateSounds();  // populate sound dropdown before preloading
+updateUI();
+
+// Stagger preloading — guitar sounds first (default instrument), then bass
+const allSounds = [...GUITAR_SOUNDS, ...BASS_SOUNDS];
+allSounds.forEach((key, i) => setTimeout(() => loadSampler(key), i * 400));
+</script>
+</body>
+</html>
