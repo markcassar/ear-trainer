@@ -2,7 +2,8 @@
 
 A browser-based ear training tool for guitar and bass players. No installation required — open the HTML file in any modern browser and start playing.
 
-![Ear Trainer screenshot](screenshot.png)
+![Ear Trainer screenshot](screenshot.jpg)
+
 
 ---
 
