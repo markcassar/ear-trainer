@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piano Ear Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/tone@14/build/Tone.js"></script>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg:         #080808;
+  --surface:    #111111;
+  --surface2:   #191919;
+  --border:     #262626;
+  --border-lit: #3a3a3a;
+  --accent:     #e8851a;
+  --accent-lo:  #e8851a22;
+  --accent-glow:#e8851a66;
+  --text:       #ede8d8;
+  --text-dim:   #5a5650;
+  --text-mid:   #888;
+  --danger:     #e84d1a;
+  --mono: 'Space Mono', 'Courier New', monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  min-height: 100vh;
+  padding: 2.5rem 1rem 4rem;
+  font-size: 14px;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px,
+    rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  pointer-events: none;
+  z-index: 100;
+}
+
+.app { max-width: 720px; margin: 0 auto; }
+
+/* ── HEADER ── */
+header { text-align: center; margin-bottom: 2.5rem; }
+
+.title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2.8rem, 9vw, 4.8rem);
+  letter-spacing: 0.18em;
+  color: var(--accent);
+  line-height: 1;
+  text-shadow: 0 0 20px var(--accent-glow), 0 0 60px var(--accent-lo);
+}
+
+.tagline {
+  font-size: 0.6rem;
+  letter-spacing: 0.4em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-top: 0.6rem;
+}
+.tagline span { color: var(--text-mid); margin: 0 0.5em; }
+
+/* ── PANELS ── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1.5rem;
+  margin-bottom: 1px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.panel-label {
+  font-size: 0.55rem;
+  letter-spacing: 0.35em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.panel-header::after { content:''; flex:1; height:1px; background:var(--border); }
+
+/* ── CONTROLS ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+.ctrl { display: flex; flex-direction: column; gap: 0.4rem; }
+.ctrl label {
+  font-size: 0.55rem;
+  letter-spacing: 0.25em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.select-wrap { position: relative; }
+.select-wrap::after {
+  content: '▾';
+  position: absolute;
+  right: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--accent);
+  pointer-events: none;
+  font-size: 0.75rem;
+}
+
+select {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  border-radius: 2px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color 0.15s;
+}
+select:hover, select:focus { border-color: var(--accent); outline: none; }
+select option { background: #1a1a1a; }
+
+/* Range slider */
+.slider-row { display: flex; align-items: center; gap: 1rem; }
+input[type=range] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  background: var(--border);
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+input[type=range]::-moz-range-thumb {
+  width: 14px; height: 14px;
+  background: var(--accent);
+  border: none; border-radius: 50%; cursor: pointer;
+}
+.slider-val {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.6rem;
+  color: var(--accent);
+  min-width: 2ch;
+  text-align: right;
+  line-height: 1;
+}
+
+/* ── BUTTONS ── */
+.btn-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 0.5rem;
+  margin: 1.25rem 0;
+}
+
+button {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 0.85rem 0.75rem;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.12s;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-dim);
+}
+button:hover:not(:disabled) { border-color: var(--border-lit); color: var(--text); }
+button:disabled { opacity: 0.25; cursor: not-allowed; }
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+  font-weight: 700;
+  box-shadow: 0 0 16px var(--accent-lo);
+}
+button.primary:hover:not(:disabled) {
+  background: #f0962a;
+  box-shadow: 0 0 24px var(--accent-glow);
+}
+button.primary:active:not(:disabled) { background: #c87010; }
+
+/* ── NOTE INDICATORS ── */
+.indicators {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem 0 1rem;
+  min-height: 56px;
+}
+.dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  transition: all 0.08s;
+  flex-shrink: 0;
+}
+.dot.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+  transform: scale(1.5);
+}
+.dot.done { background: var(--border-lit); border-color: var(--border-lit); }
+
+/* ── ERROR ── */
+.error {
+  font-size: 0.65rem;
+  color: var(--danger);
+  text-align: center;
+  letter-spacing: 0.1em;
+  padding: 0.4rem;
+  display: none;
+}
+
+/* ── KEYBOARD PANEL ── */
+.kb-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.kb-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+.kb-label-txt {
+  font-size: 0.55rem;
+  letter-spacing: 0.3em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.kb-key-name {
+  font-size: 0.7rem;
+  color: var(--text-mid);
+  letter-spacing: 0.1em;
+}
+
+.kb-body {
+  position: relative;
+  padding: 1.5rem 1.25rem 1rem;
+  min-height: 200px;
+}
+
+.kb-svg-wrap {
+  transition: filter 0.3s, opacity 0.3s;
+  line-height: 0;
+}
+.kb-svg-wrap.blurred {
+  filter: blur(7px);
+  opacity: 0.35;
+  user-select: none;
+  pointer-events: none;
+}
+
+.kb-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.kb-overlay-text {
+  font-size: 0.6rem;
+  letter-spacing: 0.25em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.kb-overlay-sub {
+  font-size: 0.55rem;
+  color: var(--text-dim);
+  opacity: 0.5;
+  letter-spacing: 0.15em;
+}
+
+.kb-legend {
+  padding: 0.75rem 1.25rem 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.72rem;
+  color: var(--text-mid);
+  letter-spacing: 0.1em;
+  display: none;
+  line-height: 1.9;
+}
+.kb-legend span { color: var(--accent); font-weight: 700; margin-right: 0.2em; }
+
+/* ── STATUS ── */
+.status {
+  text-align: center;
+  font-size: 0.55rem;
+  letter-spacing: 0.3em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  padding: 1.25rem 0 0;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.status.active { animation: blink 0.8s infinite; color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="title">Piano Ear Trainer</div>
+    <div class="tagline">120 BPM<span>·</span>Half Notes<span>·</span>Full Range</div>
+  </header>
+
+  <!-- CONFIG PANEL -->
+  <div class="panel">
+    <div class="panel-header"><span class="panel-label">Configuration</span></div>
+
+    <div class="grid-2">
+      <div class="ctrl">
+        <label>Key</label>
+        <div class="select-wrap">
+          <select id="keySelect">
+            <option value="random">— Random —</option>
+            <option value="0">C</option>
+            <option value="1">C# / Db</option>
+            <option value="2">D</option>
+            <option value="3">D# / Eb</option>
+            <option value="4">E</option>
+            <option value="5">F</option>
+            <option value="6">F# / Gb</option>
+            <option value="7">G</option>
+            <option value="8">G# / Ab</option>
+            <option value="9">A</option>
+            <option value="10">A# / Bb</option>
+            <option value="11">B</option>
+          </select>
+        </div>
+      </div>
+      <div class="ctrl">
+        <label>Scale</label>
+        <div class="select-wrap">
+          <select id="scaleSelect">
+            <option value="major">Major</option>
+            <option value="minor">Natural Minor</option>
+            <option value="pent_major">Pentatonic Major</option>
+            <option value="pent_minor">Pentatonic Minor</option>
+            <option value="blues">Blues</option>
+            <option value="chromatic">Chromatic</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="ctrl" style="margin-top:1rem">
+      <label>Range</label>
+      <div class="select-wrap">
+        <select id="rangeSelect">
+          <option value="0">A0 – B2  ·  Very Low</option>
+          <option value="1">C2 – B3  ·  Low</option>
+          <option value="2">C3 – B4  ·  Mid-Low</option>
+          <option value="3" selected>C4 – B5  ·  Mid  ★</option>
+          <option value="4">C5 – B6  ·  High</option>
+          <option value="5">C6 – C8  ·  Very High</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="ctrl" style="margin-top:1rem">
+      <label>Piano Sound</label>
+      <div class="select-wrap">
+        <select id="soundSelect">
+          <option value="grand">Grand Piano</option>
+          <option value="electric">Electric Piano</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="ctrl" style="margin-top:1.25rem">
+      <label>Number of Notes</label>
+      <div class="slider-row">
+        <input type="range" id="noteCount" min="2" max="12" value="4" step="1">
+        <div class="slider-val" id="noteCountVal">4</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="btn-row">
+    <button class="primary" id="btnNew">▶ New Sequence</button>
+    <button id="btnReplay" disabled>↺ Replay</button>
+    <button id="btnPrev"   disabled>← Previous</button>
+    <button id="btnReveal" disabled>◈ Reveal</button>
+  </div>
+
+  <div class="error" id="errorMsg"></div>
+  <div class="indicators" id="indicators"></div>
+
+  <!-- KEYBOARD PANEL -->
+  <div class="kb-wrap">
+    <div class="kb-top">
+      <span class="kb-label-txt">Keyboard</span>
+      <span class="kb-key-name" id="kbKeyName">—</span>
+    </div>
+    <div class="kb-body">
+      <div class="kb-svg-wrap blurred" id="kbSvgWrap"></div>
+      <div class="kb-overlay" id="kbOverlay">
+        <span class="kb-overlay-text">Awaiting Sequence</span>
+        <span class="kb-overlay-sub">Play something first</span>
+      </div>
+    </div>
+    <div class="kb-legend" id="kbLegend"></div>
+  </div>
+
+  <div class="status" id="status">Configure and press New Sequence to begin</div>
+
+</div>
+<script>
+// ════════════════════════════════════════════
+//  MUSIC THEORY
+// ════════════════════════════════════════════
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+const SCALES = {
+  major:      [0,2,4,5,7,9,11],
+  minor:      [0,2,3,5,7,8,10],
+  pent_major: [0,2,4,7,9],
+  pent_minor: [0,3,5,7,10],
+  blues:      [0,3,5,6,7,10],
+  chromatic:  [0,1,2,3,4,5,6,7,8,9,10,11]
+};
+
+const SCALE_LABELS = {
+  major:'Major', minor:'Natural Minor',
+  pent_major:'Pentatonic Major', pent_minor:'Pentatonic Minor',
+  blues:'Blues', chromatic:'Chromatic'
+};
+
+// 2-octave range windows across the full piano (A0=21, C8=108)
+const RANGES = [
+  { label:'A0–B2', lo:21, hi:47  },
+  { label:'C2–B3', lo:36, hi:59  },
+  { label:'C3–B4', lo:48, hi:71  },
+  { label:'C4–B5', lo:60, hi:83  },  // default
+  { label:'C5–B6', lo:72, hi:95  },
+  { label:'C6–C8', lo:84, hi:108 },
+];
+
+function currentRange() {
+  return RANGES[parseInt(document.getElementById('rangeSelect').value)];
+}
+
+// Per-semitone key info
+const KEY_INFO = [
+  {isWhite:true,  name:'C'},   // 0
+  {isWhite:false, name:'C#'},  // 1
+  {isWhite:true,  name:'D'},   // 2
+  {isWhite:false, name:'D#'},  // 3
+  {isWhite:true,  name:'E'},   // 4
+  {isWhite:true,  name:'F'},   // 5
+  {isWhite:false, name:'F#'},  // 6
+  {isWhite:true,  name:'G'},   // 7
+  {isWhite:false, name:'G#'},  // 8
+  {isWhite:true,  name:'A'},   // 9
+  {isWhite:false, name:'A#'},  // 10
+  {isWhite:true,  name:'B'},   // 11
+];
+
+function midiNoteName(midi) {
+  return NOTE_NAMES[midi % 12] + (Math.floor(midi / 12) - 1);
+}
+
+function midiToTone(midi) {
+  return NOTE_NAMES[midi % 12] + (Math.floor(midi / 12) - 1);
+}
+
+function validNotes(keyRoot, scaleType, lo, hi) {
+  const intervals = SCALES[scaleType];
+  const out = [];
+  for (let m = lo; m <= hi; m++) {
+    if (intervals.includes(((m - keyRoot) % 12 + 12) % 12)) out.push(m);
+  }
+  return out;
+}
+
+
+// ════════════════════════════════════════════
+//  KEYBOARD SVG RENDERER
+// ════════════════════════════════════════════
+// highlightMap: { [midi]: [1,3,...] } — 1-indexed sequence positions
+function buildKeyboardSVG(midiLo, midiHi, highlightMap) {
+  const WKW = 40,  WKH = 125;   // white key dimensions (SVG units)
+  const BKW = 24,  BKH = 78;    // black key dimensions
+  const GAP = 1.5;               // gap between white keys
+  const TOP = 38;                // space above keyboard for badges
+
+  const wKeys = [], bKeys = [];
+  let wIdx = 0;
+
+  for (let midi = midiLo; midi <= midiHi; midi++) {
+    const sem  = midi % 12;
+    const info = KEY_INFO[sem];
+    const note = midiNoteName(midi);
+    const orders = highlightMap[midi] || null;
+
+    if (info.isWhite) {
+      wKeys.push({ x: wIdx * WKW + GAP / 2, w: WKW - GAP, cx: wIdx * WKW + WKW / 2, note, orders });
+      wIdx++;
+    } else {
+      // Black key centered at boundary between surrounding white keys
+      const cx = wIdx * WKW;
+      bKeys.push({ x: cx - BKW / 2, cx, note, orders });
+    }
+  }
+
+  const totalW = wIdx * WKW;
+  const totalH = TOP + WKH + 4;
+
+  let s = `<svg viewBox="0 0 ${totalW} ${totalH}" xmlns="http://www.w3.org/2000/svg" `
+        + `width="100%" preserveAspectRatio="xMidYMid meet">`;
+
+  // Keyboard backing
+  s += `<rect x="0" y="${TOP}" width="${totalW}" height="${WKH + 4}" rx="3" fill="#0d0d0d"/>`;
+
+  // White keys
+  for (const k of wKeys) {
+    const fill   = k.orders ? '#e8851a' : '#ddd8cc';
+    const stroke = k.orders ? '#a05800' : '#2a2a2a';
+    s += `<rect x="${k.x}" y="${TOP}" width="${k.w}" height="${WKH}" rx="2" `
+       + `fill="${fill}" stroke="${stroke}" stroke-width="0.8"/>`;
+    if (k.orders) {
+      // Order number
+      s += `<text x="${k.cx}" y="${TOP - 20}" text-anchor="middle" `
+         + `font-size="14" font-weight="700" fill="#e8851a" font-family="'Space Mono',monospace">`
+         + `${k.orders.join(',')}</text>`;
+      // Note name
+      s += `<text x="${k.cx}" y="${TOP - 5}" text-anchor="middle" `
+         + `font-size="9" fill="#666" font-family="'Space Mono',monospace">`
+         + `${k.note}</text>`;
+    }
+  }
+
+  // Black keys (on top)
+  for (const k of bKeys) {
+    const fill   = k.orders ? '#e8851a' : '#111';
+    const stroke = k.orders ? '#a05800' : '#050505';
+    s += `<rect x="${k.x}" y="${TOP}" width="${BKW}" height="${BKH}" rx="2" `
+       + `fill="${fill}" stroke="${stroke}" stroke-width="0.8"/>`;
+    if (k.orders) {
+      s += `<text x="${k.cx}" y="${TOP - 20}" text-anchor="middle" `
+         + `font-size="14" font-weight="700" fill="#e8851a" font-family="'Space Mono',monospace">`
+         + `${k.orders.join(',')}</text>`;
+      s += `<text x="${k.cx}" y="${TOP - 5}" text-anchor="middle" `
+         + `font-size="9" fill="#666" font-family="'Space Mono',monospace">`
+         + `${k.note}</text>`;
+    }
+  }
+
+  s += '</svg>';
+  return s;
+}
+
+function buildBlankSVG() {
+  const { lo, hi } = currentRange();
+  return buildKeyboardSVG(lo, hi, {});
+}
+
+function buildRevealSVG(midiArr) {
+  const { lo, hi } = currentRange();
+  // Build highlight map: midi → array of 1-indexed positions
+  const map = {};
+  midiArr.forEach((midi, i) => {
+    if (!map[midi]) map[midi] = [];
+    map[midi].push(i + 1);
+  });
+  return buildKeyboardSVG(lo, hi, map);
+}
+
+
+// ════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════
+let currentNotes  = [];
+let previousNotes = [];
+let prevKey = null, prevScale = null;
+let isPlaying    = false;
+let hasSequence  = false;
+let hasPrevious  = false;
+let isRevealed   = false;
+let usedKey      = null;
+let usedScale    = null;
+let timeouts     = [];
+let synth        = null; // kept for compat; we use samplers map
+
+
+// ════════════════════════════════════════════
+//  AUDIO
+// ════════════════════════════════════════════
+function clearTimeouts() {
+  timeouts.forEach(clearTimeout);
+  timeouts = [];
+}
+
+const SAMPLE_BASE = 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/';
+
+// Dense sample set covering full piano range (A0–C8)
+const PIANO_KEYS = [
+  'A0','C1','E1','A1','C2','E2','A2',
+  'C3','E3','A3','C4','E4','A4',
+  'C5','E5','A5','C6','E6','A6',
+  'C7','E7','A7','C8'
+];
+
+const SOUND_CONFIGS = {
+  grand:    { dir:'acoustic_grand_piano-mp3',  label:'Grand Piano',    release:2.0 },
+  electric: { dir:'electric_piano_1-mp3',      label:'Electric Piano', release:1.5 },
+};
+
+const samplers     = {};
+const samplerState = {};
+
+function buildSamplerUrls(cfg) {
+  const urls = {};
+  PIANO_KEYS.forEach(n => {
+    urls[n] = SAMPLE_BASE + cfg.dir + '/' + n.replace('#','s') + '.mp3';
+  });
+  return urls;
+}
+
+function loadSampler(type) {
+  if (samplerState[type] === 'ready' || samplerState[type] === 'loading') return;
+  samplerState[type] = 'loading';
+  const cfg = SOUND_CONFIGS[type];
+
+  samplers[type] = new Tone.Sampler({
+    urls: buildSamplerUrls(cfg),
+    release: cfg.release,
+    onload: () => {
+      samplerState[type] = 'ready';
+      if (type === activeType()) { setStatus('Ready', false); updateUI(); }
+    },
+    onerror: () => {
+      samplers[type] = new Tone.Synth({
+        oscillator: { type: 'triangle' },
+        envelope: { attack: 0.01, decay: 0.8, sustain: 0.1, release: 1.5 }
+      }).toDestination();
+      samplerState[type] = 'ready';
+    }
+  }).toDestination();
+}
+
+function activeType() {
+  return document.getElementById('soundSelect').value;
+}
+
+async function ensureReady() {
+  const type = activeType();
+  loadSampler(type);
+  if (samplerState[type] === 'ready') return;
+  setStatus(`Loading ${SOUND_CONFIGS[type].label} samples…`, true);
+  return new Promise(resolve => {
+    const check = setInterval(() => {
+      if (samplerState[type] === 'ready') { clearInterval(check); resolve(); }
+    }, 100);
+  });
+}
+
+async function playSeries(notes) {
+  isPlaying = true;
+  updateUI();
+  clearTimeouts();
+
+  await ensureReady();
+
+  const s = samplers[activeType()];
+  const INTERVAL_MS = 1000; // half note @ 120 BPM
+
+  notes.forEach((_, i) => setDot(i, 'idle'));
+
+  notes.forEach((midi, i) => {
+    timeouts.push(setTimeout(() => {
+      setDot(i, 'active');
+      try { s.triggerAttackRelease(midiToTone(midi), '2n'); }
+      catch(e) { console.warn('note error', midiToTone(midi), e); }
+    }, i * INTERVAL_MS));
+    timeouts.push(setTimeout(() => setDot(i, 'done'), i * INTERVAL_MS + 300));
+  });
+
+  timeouts.push(setTimeout(() => {
+    isPlaying = false;
+    setStatus('Listen again or reveal the keyboard when ready', false);
+    updateUI();
+  }, notes.length * INTERVAL_MS + 400));
+}
+
+
+// ════════════════════════════════════════════
+//  INDICATORS
+// ════════════════════════════════════════════
+const indicators = document.getElementById('indicators');
+
+function buildDots(n) {
+  indicators.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.id = `dot-${i}`;
+    indicators.appendChild(d);
+  }
+}
+
+function setDot(i, state) {
+  const d = document.getElementById(`dot-${i}`);
+  if (!d) return;
+  d.className = 'dot' + (state === 'active' ? ' active' : state === 'done' ? ' done' : '');
+}
+
+
+// ════════════════════════════════════════════
+//  SEQUENCE
+// ════════════════════════════════════════════
+function generate() {
+  const keyRaw   = document.getElementById('keySelect').value;
+  const scaleKey = document.getElementById('scaleSelect').value;
+  const { lo, hi } = currentRange();
+  const n = parseInt(document.getElementById('noteCount').value);
+
+  const root = keyRaw === 'random' ? Math.floor(Math.random() * 12) : parseInt(keyRaw);
+  const pool = validNotes(root, scaleKey, lo, hi);
+
+  if (pool.length === 0) {
+    showError('No notes in this key + range. Try Chromatic or widen the range.');
+    return null;
+  }
+
+  clearError();
+  usedKey   = root;
+  usedScale = scaleKey;
+
+  return Array.from({ length: n }, () => pool[Math.floor(Math.random() * pool.length)]);
+}
+
+
+// ════════════════════════════════════════════
+//  REVEAL
+// ════════════════════════════════════════════
+const kbSvgWrap = document.getElementById('kbSvgWrap');
+const kbOverlay = document.getElementById('kbOverlay');
+const kbKeyName = document.getElementById('kbKeyName');
+const kbLegend  = document.getElementById('kbLegend');
+
+function reveal() {
+  if (!hasSequence || isRevealed) return;
+  isRevealed = true;
+
+  kbSvgWrap.innerHTML = buildRevealSVG(currentNotes);
+  kbSvgWrap.classList.remove('blurred');
+  kbOverlay.style.display = 'none';
+
+  kbKeyName.textContent = `${NOTE_NAMES[usedKey]} ${SCALE_LABELS[usedScale]}`;
+
+  // Legend: "① C4  ② F#4  ③ A4  ④ D5"
+  const legendParts = currentNotes.map((midi, i) => {
+    const num = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫'][i] || `(${i+1})`;
+    return `<span>${num}</span>${midiNoteName(midi)}`;
+  });
+  kbLegend.innerHTML = legendParts.join('&ensp;&nbsp;');
+  kbLegend.style.display = 'block';
+
+  updateUI();
+}
+
+
+// ════════════════════════════════════════════
+//  UI HELPERS
+// ════════════════════════════════════════════
+const btnNew    = document.getElementById('btnNew');
+const btnReplay = document.getElementById('btnReplay');
+const btnPrev   = document.getElementById('btnPrev');
+const btnReveal = document.getElementById('btnReveal');
+const errorMsg  = document.getElementById('errorMsg');
+const statusEl  = document.getElementById('status');
+
+function updateUI() {
+  btnNew.disabled    = isPlaying;
+  btnReplay.disabled = isPlaying || !hasSequence;
+  btnPrev.disabled   = isPlaying || !hasPrevious;
+  btnReveal.disabled = isPlaying || !hasSequence || isRevealed;
+  btnNew.textContent = isPlaying ? '▶ Playing…' : '▶ New Sequence';
+  if (isPlaying) setStatus('♪  Listen carefully', true);
+}
+
+function setStatus(msg, active = false) {
+  statusEl.textContent = msg;
+  statusEl.className = 'status' + (active ? ' active' : '');
+}
+
+function showError(msg) { errorMsg.textContent = msg; errorMsg.style.display = 'block'; }
+function clearError()   { errorMsg.style.display = 'none'; }
+
+function resetKbPanel() {
+  kbSvgWrap.innerHTML = buildBlankSVG();
+  kbSvgWrap.classList.add('blurred');
+  kbOverlay.style.display = 'flex';
+  kbOverlay.innerHTML =
+    `<span class="kb-overlay-text">Keyboard Hidden</span>
+     <span class="kb-overlay-sub">Press "Reveal" when ready</span>`;
+  kbKeyName.textContent = '—';
+  kbLegend.style.display = 'none';
+}
+
+
+// ════════════════════════════════════════════
+//  BUTTON HANDLERS
+// ════════════════════════════════════════════
+btnNew.addEventListener('click', async () => {
+  Tone.start();
+  const notes = generate();
+  if (!notes) return;
+
+  if (hasSequence) {
+    previousNotes = [...currentNotes];
+    prevKey   = usedKey;
+    prevScale = usedScale;
+    hasPrevious = true;
+  }
+
+  currentNotes = notes;
+  hasSequence  = true;
+  isRevealed   = false;
+
+  resetKbPanel();
+  buildDots(notes.length);
+  await playSeries(notes);
+});
+
+btnReplay.addEventListener('click', async () => {
+  Tone.start();
+  if (!hasSequence || isPlaying) return;
+  buildDots(currentNotes.length);
+  await playSeries(currentNotes);
+});
+
+btnPrev.addEventListener('click', async () => {
+  Tone.start();
+  if (!hasPrevious || isPlaying) return;
+
+  const tNotes = [...currentNotes], tKey = usedKey, tScale = usedScale;
+  currentNotes = [...previousNotes]; usedKey = prevKey; usedScale = prevScale;
+  previousNotes = tNotes; prevKey = tKey; prevScale = tScale;
+
+  isRevealed = false;
+  resetKbPanel();
+  buildDots(currentNotes.length);
+  await playSeries(currentNotes);
+});
+
+btnReveal.addEventListener('click', reveal);
+
+document.getElementById('noteCount').addEventListener('input', e => {
+  document.getElementById('noteCountVal').textContent = e.target.value;
+});
+
+// Redraw blank keyboard when range changes (so it shows the right span)
+document.getElementById('rangeSelect').addEventListener('change', () => {
+  if (!isRevealed) kbSvgWrap.innerHTML = buildBlankSVG();
+});
+
+
+// ════════════════════════════════════════════
+//  STARTUP
+// ════════════════════════════════════════════
+kbSvgWrap.innerHTML = buildBlankSVG();
+buildDots(4);
+updateUI();
+
+// Stagger-load both samplers
+loadSampler('grand');
+setTimeout(() => loadSampler('electric'), 800);
+</script>
+</body>
+</html>

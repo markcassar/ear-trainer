@@ -101,6 +101,21 @@ E |-0-|-3-|---|---|
 
 ---
 
+## Piano Version
+
+A companion app — `piano-ear-trainer.html` — is included in the repo. It works the same way but is built specifically for piano ear training.
+
+**What's different:**
+
+- **Range selector** — six 2-octave windows spanning the full 88-key piano range (A0–C8), from very low bass territory up to very high treble
+- **Sounds** — Grand Piano and Electric Piano, both using real sampled instruments
+- **Keyboard reveal** — instead of ASCII tab, the answer is shown as an interactive SVG piano keyboard with highlighted keys. The sequence order (①②③…) floats above each highlighted key, and a note legend appears below the keyboard
+- **Same workflow** — New Sequence, Replay, Previous, and Reveal buttons work identically to the guitar/bass version
+
+The piano version shares the same browser compatibility notes and internet connection requirement as the guitar/bass version.
+
+---
+
 ## Problems
 
 If you run into a bug or something behaves unexpectedly, feel free to open an issue. This project is not actively maintained, so there is no guarantee of a fix or response timeline, but reports are welcome.
