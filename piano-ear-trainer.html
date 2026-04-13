@@ -330,7 +330,7 @@ button.primary:active:not(:disabled) { background: #c87010; }
 
   <header>
     <div class="title">Piano Ear Trainer</div>
-    <div class="tagline">120 BPM<span>·</span>Half Notes<span>·</span>Full Range</div>
+    <div class="tagline">120 BPM<span>·</span>Adjustable Timing<span>·</span>Full Range</div>
   </header>
 
   <!-- CONFIG PANEL -->
@@ -393,6 +393,18 @@ button.primary:active:not(:disabled) { background: #c87010; }
         <select id="soundSelect">
           <option value="grand">Grand Piano</option>
           <option value="electric">Electric Piano</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="ctrl" style="margin-top:1rem">
+      <label>Note Length  <span style="color:var(--text-dim);font-size:0.5rem;letter-spacing:0.15em">@ 120 BPM</span></label>
+      <div class="select-wrap">
+        <select id="noteLength">
+          <option value="8n">Eighth  —  0.25 s</option>
+          <option value="4n">Quarter  —  0.5 s</option>
+          <option value="2n" selected>Half  —  1.0 s</option>
+          <option value="1n">Whole  —  2.0 s</option>
         </select>
       </div>
     </div>
@@ -694,14 +706,15 @@ async function playSeries(notes) {
   await ensureReady();
 
   const s = samplers[activeType()];
-  const INTERVAL_MS = 1000; // half note @ 120 BPM
+  const noteDur     = document.getElementById('noteLength').value;
+  const INTERVAL_MS = { '8n': 250, '4n': 500, '2n': 1000, '1n': 2000 }[noteDur] || 1000;
 
   notes.forEach((_, i) => setDot(i, 'idle'));
 
   notes.forEach((midi, i) => {
     timeouts.push(setTimeout(() => {
       setDot(i, 'active');
-      try { s.triggerAttackRelease(midiToTone(midi), '2n'); }
+      try { s.triggerAttackRelease(midiToTone(midi), noteDur); }
       catch(e) { console.warn('note error', midiToTone(midi), e); }
     }, i * INTERVAL_MS));
     timeouts.push(setTimeout(() => setDot(i, 'done'), i * INTERVAL_MS + 300));

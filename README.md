@@ -59,7 +59,16 @@ Drop `ear-trainer.html` on any static hosting service (GitHub Pages, Netlify, Ve
 
 ## Tempo and Timing
 
-Notes are played at **120 BPM** as **half notes** — one note every second. This is intentional: it gives you enough time to mentally process each pitch without the sequence feeling sluggish. There is no metronome pulse, so your ear is focused purely on pitch rather than rhythm.
+Notes are played at **120 BPM**. The note length — and therefore the interval between notes — is adjustable via a dropdown in the configuration panel:
+
+| Setting | Interval |
+|---------|----------|
+| Eighth note | 0.25 s |
+| Quarter note | 0.5 s |
+| Half note *(default)* | 1.0 s |
+| Whole note | 2.0 s |
+
+Start with half notes if you are unsure. Quarter notes are useful once the patterns feel comfortable and you want to push your reaction time. Whole notes give you more space to sing or hum each pitch before the next one arrives.
 
 ---
 
@@ -98,21 +107,6 @@ E |-0-|-3-|---|---|
 - Instrument samples: [midi-js-soundfonts](https://github.com/gleitz/midi-js-soundfonts) (FluidR3 GM soundfont, MP3)
 - All six instrument sounds are preloaded in the background when the page opens, staggered to avoid hammering the CDN
 - If a sample fails to load, the app silently falls back to a synthesized tone so playback always works
-
----
-
-## Piano Version
-
-A companion app — `piano-ear-trainer.html` — is included in the repo. It works the same way but is built specifically for piano ear training.
-
-**What's different:**
-
-- **Range selector** — six 2-octave windows spanning the full 88-key piano range (A0–C8), from very low bass territory up to very high treble
-- **Sounds** — Grand Piano and Electric Piano, both using real sampled instruments
-- **Keyboard reveal** — instead of ASCII tab, the answer is shown as an interactive SVG piano keyboard with highlighted keys. The sequence order (①②③…) floats above each highlighted key, and a note legend appears below the keyboard
-- **Same workflow** — New Sequence, Replay, Previous, and Reveal buttons work identically to the guitar/bass version
-
-The piano version shares the same browser compatibility notes and internet connection requirement as the guitar/bass version.
 
 ---
 
